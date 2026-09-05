@@ -1,0 +1,15 @@
+# Generated reports (can be hundreds of MB with plotly inlined)
+*.html
+
+# Editor backups
+*.bak
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
