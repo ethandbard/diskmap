@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>diskmap — __DM_TITLE__</title>
+<style>
+  :root{
+    --bg:#081522; --ink:#0B1E33; --panel:#0D2338; --panel-2:#112B45; --line:#2A4A6B; --line-soft:rgba(124,144,163,.16);
+    --paper:#F2EFE9; --cyan:#4FB3D9; --amber:#E8A33D; --slate:#7C90A3; --danger:#D9694F;
+    --mono:'Cascadia Mono','SFMono-Regular',Menlo,Consolas,monospace;
+    --body:'Inter','Segoe UI Variable','Segoe UI',-apple-system,sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--paper);font-family:var(--body);
+    background-image:radial-gradient(1200px 600px at 85% -10%,rgba(79,179,217,.10),transparent 60%),
+                     radial-gradient(900px 500px at -10% 10%,rgba(232,163,61,.06),transparent 60%);
+    background-attachment:fixed;}
+  button{font:inherit;color:inherit;}
+  .wrap{max-width:1400px;margin:0 auto;padding:24px 22px 64px;}
+
+  /* header */
+  .hdr{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:18px;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .logo{display:grid;grid-template-columns:repeat(3,7px);grid-template-rows:repeat(3,7px);gap:2px;}
+  .logo i{background:var(--cyan);border-radius:1.5px;animation:blink 3.2s var(--ease) infinite;}
+  .logo i:nth-child(3n){background:var(--amber);} .logo i:nth-child(4){background:#7FD1A8;}
+  .logo i:nth-child(2){animation-delay:.2s}.logo i:nth-child(3){animation-delay:.4s}.logo i:nth-child(4){animation-delay:.6s}
+  .logo i:nth-child(5){animation-delay:.8s}.logo i:nth-child(6){animation-delay:1s}.logo i:nth-child(7){animation-delay:1.2s}
+  .logo i:nth-child(8){animation-delay:1.4s}.logo i:nth-child(9){animation-delay:1.6s}
+  @keyframes blink{0%,70%,100%{opacity:1;transform:scale(1)}80%{opacity:.35;transform:scale(.7)}}
+  .title{font-size:24px;font-weight:700;margin:0;letter-spacing:-.01em;}
+  .title span{color:var(--cyan);}
+  .sub{font-family:var(--mono);font-size:12px;color:var(--slate);margin-top:4px;word-break:break-all;}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;}
+  .stat{background:rgba(18,49,79,.45);border:1px solid var(--line);border-radius:8px;padding:9px 14px;min-width:112px;
+    font-family:var(--mono);font-size:11px;color:var(--slate);opacity:0;transform:translateY(8px);
+    animation:rise .7s var(--ease) forwards;}
+  .stat b{display:block;color:var(--paper);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;margin-bottom:1px;}
+  .stat:first-child b{color:var(--amber);}
+  .stat:nth-child(2){animation-delay:.08s}.stat:nth-child(3){animation-delay:.16s}.stat:nth-child(4){animation-delay:.24s}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  /* toolbar */
+  .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .crumbs{display:flex;align-items:center;gap:2px;flex:1 1 360px;min-width:0;overflow:hidden;font-family:var(--mono);font-size:12.5px;}
+  .crumb{background:none;border:0;padding:5px 8px;border-radius:5px;cursor:pointer;color:var(--slate);white-space:nowrap;
+    max-width:220px;overflow:hidden;text-overflow:ellipsis;transition:background .2s,color .2s;animation:crumbIn .35s var(--ease);}
+  .crumb:hover{background:rgba(79,179,217,.12);color:var(--paper);}
+  .crumb.cur{color:var(--paper);font-weight:600;cursor:default;background:rgba(79,179,217,.10);}
+  .crumb-sep{color:var(--line);user-select:none;}
+  @keyframes crumbIn{from{opacity:0;transform:translateX(-6px)}}
+  .up{display:grid;place-items:center;width:30px;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--panel);cursor:pointer;
+    transition:border-color .2s,transform .2s var(--ease),opacity .2s;}
+  .up:hover:not(:disabled){border-color:var(--cyan);transform:translateY(-1px);}
+  .up:disabled{opacity:.35;cursor:default;}
+  .seg{position:relative;display:flex;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:2px;}
+  .seg button{position:relative;z-index:1;background:none;border:0;padding:5px 11px;font-size:12px;cursor:pointer;color:var(--slate);transition:color .25s;}
+  .seg button.on{color:var(--bg);font-weight:600;}
+  .seg .knob{position:absolute;z-index:0;top:2px;bottom:2px;border-radius:5px;background:var(--cyan);transition:left .35s var(--ease),width .35s var(--ease);}
+  .search{position:relative;}
+  .search input{width:240px;background:var(--panel);border:1px solid var(--line);border-radius:7px;color:var(--paper);
+    padding:7px 30px 7px 30px;font-family:var(--mono);font-size:12px;outline:none;transition:border-color .2s,width .35s var(--ease),box-shadow .2s;}
+  .search input:focus{border-color:var(--cyan);width:300px;box-shadow:0 0 0 3px rgba(79,179,217,.15);}
+  .search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);opacity:.6;pointer-events:none;}
+  .search kbd{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--slate);
+    border:1px solid var(--line);border-radius:3px;padding:0 4px;pointer-events:none;}
+  .results{position:absolute;right:0;top:calc(100% + 6px);width:420px;max-height:380px;overflow:auto;z-index:30;background:var(--panel);
+    border:1px solid var(--line);border-radius:8px;box-shadow:0 18px 40px rgba(0,0,0,.45);padding:4px;
+    opacity:0;transform:translateY(-4px) scale(.98);transform-origin:top right;pointer-events:none;transition:opacity .18s,transform .25s var(--ease);}
+  .results.show{opacity:1;transform:none;pointer-events:auto;}
+  .res{display:grid;grid-template-columns:10px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-radius:5px;cursor:pointer;font-family:var(--mono);font-size:11.5px;}
+  .res:hover,.res.on{background:rgba(79,179,217,.12);}
+  .res .p{color:var(--slate);font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left;}
+  .res .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .res .sz{color:var(--amber);white-space:nowrap;}
+  .res-head{font-size:10.5px;color:var(--slate);padding:6px 8px 4px;font-family:var(--mono);}
+
+  /* map + inspector */
+  .stage{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:14px;}
+  .mapbox{position:relative;background:var(--ink);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    box-shadow:0 20px 50px rgba(0,0,0,.35);}
+  #map{display:block;width:100%;height:620px;cursor:pointer;}
+  .hint{position:absolute;left:10px;bottom:8px;font-family:var(--mono);font-size:10.5px;color:rgba(242,239,233,.55);
+    background:rgba(8,21,34,.7);padding:3px 8px;border-radius:4px;pointer-events:none;transition:opacity .6s;}
+  .tip{position:fixed;z-index:40;pointer-events:none;background:rgba(10,27,44,.96);border:1px solid var(--line);border-radius:8px;
+    padding:10px 12px;min-width:200px;max-width:340px;box-shadow:0 14px 34px rgba(0,0,0,.5);opacity:0;transform:scale(.96);
+    transition:opacity .12s,transform .18s var(--ease);font-size:12px;backdrop-filter:blur(6px);}
+  .tip.show{opacity:1;transform:none;}
+  .tip .t-name{font-weight:600;word-break:break-all;display:flex;gap:7px;align-items:center;}
+  .tip .t-size{font-family:var(--mono);color:var(--amber);font-size:16px;margin:6px 0 2px;}
+  .tip .t-dim{font-family:var(--mono);color:var(--slate);font-size:10.5px;line-height:1.55;}
+  .tip .t-bar{height:4px;border-radius:2px;background:rgba(124,144,163,.2);margin:6px 0;overflow:hidden;}
+  .tip .t-bar i{display:block;height:100%;background:var(--cyan);border-radius:2px;}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;flex:none;}
+
+  .insp{background:rgba(18,49,79,.45);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;
+    gap:12px;min-height:0;max-height:620px;overflow:hidden;}
+  .insp-kind{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);}
+  .insp-name{font-size:17px;font-weight:650;word-break:break-all;line-height:1.25;}
+  .insp-size{font-family:var(--mono);font-size:26px;color:var(--amber);font-variant-numeric:tabular-nums;}
+  .insp-meta{font-family:var(--mono);font-size:11px;color:var(--slate);line-height:1.7;}
+  .insp-meta b{color:var(--paper);font-weight:500;}
+  .comp{display:flex;height:10px;border-radius:5px;overflow:hidden;background:rgba(124,144,163,.15);}
+  .comp i{display:block;height:100%;transition:filter .2s;transform-origin:left;animation:grow .8s var(--ease) both;}
+  .comp i:hover{filter:brightness(1.3);}
+  .kids{overflow:auto;min-height:0;margin:0 -6px;padding:0 6px;}
+  .kid{display:grid;grid-template-columns:10px 1fr auto;gap:8px;align-items:center;padding:5px 6px;border-radius:5px;cursor:pointer;
+    font-family:var(--mono);font-size:11.5px;position:relative;opacity:0;animation:fadeIn .4s var(--ease) forwards;}
+  .kid:hover{background:rgba(79,179,217,.10);}
+  .kid .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .kid .sz{color:var(--amber);white-space:nowrap;font-size:11px;}
+  .kid .kb{grid-column:2/4;height:3px;background:rgba(124,144,163,.15);border-radius:2px;overflow:hidden;}
+  .kid .kb i{display:block;height:100%;border-radius:2px;transform-origin:left;animation:grow .7s var(--ease) both;}
+  .acts{display:flex;gap:6px;flex-wrap:wrap;}
+  .btn{font-family:var(--mono);font-size:11px;background:var(--panel);border:1px solid var(--line);color:var(--paper);padding:6px 10px;
+    border-radius:6px;cursor:pointer;transition:border-color .2s,color .2s,transform .15s var(--ease);}
+  .btn:hover{border-color:var(--cyan);color:var(--cyan);}
+  .btn:active{transform:scale(.96);}
+  .btn.ok{border-color:#7FD1A8;color:#7FD1A8;}
+  @keyframes grow{from{transform:scaleX(0)}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:30px;}
+  .lg{display:flex;align-items:center;gap:7px;padding:5px 10px;border:1px solid var(--line-soft);border-radius:999px;cursor:pointer;
+    font-size:11.5px;background:rgba(13,35,56,.6);transition:border-color .2s,background .2s,opacity .2s,transform .2s var(--ease);
+    opacity:0;animation:fadeIn .4s var(--ease) forwards;}
+  .lg:hover{border-color:var(--line);transform:translateY(-1px);}
+  .lg.on{border-color:var(--cyan);background:rgba(79,179,217,.14);}
+  .legend.filtering .lg:not(.on){opacity:.45;}
+  .lg small{font-family:var(--mono);color:var(--slate);font-size:10.5px;}
+  .grad{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;color:var(--slate);animation:fadeIn .4s var(--ease);}
+  .grad i{display:block;width:220px;height:8px;border-radius:4px;}
+  .filterpill{display:none;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--cyan);margin-left:auto;}
+  .filterpill.show{display:flex;animation:fadeIn .3s var(--ease);}
+
+  /* tabs */
+  .tabs{display:flex;gap:4px;position:relative;margin:34px 0 0;border-bottom:1px solid var(--line);}
+  .tab{background:none;border:0;padding:10px 14px;cursor:pointer;color:var(--slate);font-size:13px;transition:color .2s;}
+  .tab:hover{color:var(--paper);} .tab.on{color:var(--paper);}
+  .tab small{font-family:var(--mono);font-size:10.5px;color:var(--slate);margin-left:4px;}
+  .tabline{position:absolute;bottom:-1px;height:2px;background:var(--cyan);border-radius:2px;transition:left .4s var(--ease),width .4s var(--ease);
+    box-shadow:0 0 10px var(--cyan);}
+  .pane{display:none;padding-top:14px;} .pane.on{display:block;animation:fadeIn .35s var(--ease);}
+  .note{font-family:var(--mono);font-size:11px;color:var(--slate);margin:0 0 10px;}
+  .card{background:rgba(18,49,79,.45);border:1px solid var(--line);border-radius:10px;padding:6px;}
+  .scroll{max-height:520px;overflow:auto;}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;}
+  th{text-align:left;font-weight:500;color:var(--slate);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;padding:7px 10px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:#0D2338;z-index:1;}
+  td{padding:6px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle;}
+  tbody tr{cursor:pointer;transition:background .15s;opacity:0;animation:fadeIn .45s var(--ease) forwards;}
+  tbody tr:hover td{background:rgba(79,179,217,.08);}
+  tbody tr:hover .go{opacity:1;transform:none;}
+  .go{opacity:0;transform:translateX(-4px);transition:opacity .2s,transform .2s var(--ease);color:var(--cyan);white-space:nowrap;}
+  .num{color:var(--amber);white-space:nowrap;text-align:right;}
+  .dim{color:var(--slate);white-space:nowrap;}
+  .rank{color:var(--slate);width:30px;}
+  .path{word-break:break-all;}
+  .path .dir{color:var(--slate);}
+  .meter{display:inline-block;width:120px;height:6px;border-radius:3px;background:rgba(124,144,163,.16);overflow:hidden;vertical-align:middle;margin-right:8px;}
+  .meter i{display:block;height:100%;border-radius:3px;transform-origin:left;animation:grow .9s var(--ease) both;}
+  .empty{color:var(--slate);text-align:center;padding:18px;}
+
+  /* tree */
+  .tree-tools{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  .tree{font-family:var(--mono);font-size:12.3px;padding:6px 6px 10px;}
+  .row{display:grid;grid-template-columns:18px minmax(0,1fr) 90px 130px 120px 22px;gap:8px;align-items:center;padding:3px 6px;border-radius:5px;
+    cursor:pointer;transition:background .15s;}
+  .row:hover{background:rgba(79,179,217,.08);}
+  .row:hover .loc{opacity:1;}
+  .caret{color:var(--slate);transition:transform .3s var(--ease),color .2s;display:inline-block;text-align:center;}
+  .open > .row .caret{transform:rotate(90deg);color:var(--cyan);}
+  .row .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .row .nm.dirn{font-weight:600;}
+  .row .sz{color:var(--amber);text-align:right;white-space:nowrap;}
+  .row .ct{color:var(--slate);font-size:10.5px;white-space:nowrap;}
+  .row .loc{opacity:0;color:var(--cyan);transition:opacity .2s;text-align:center;}
+  .row .err{color:var(--danger);font-size:10.5px;margin-left:6px;}
+  .row .lnk{color:var(--cyan);font-size:10.5px;margin-left:6px;}
+  .kidsw{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s var(--ease);}
+  .open > .kidsw{grid-template-rows:1fr;}
+  .kidsw > div{overflow:hidden;margin-left:14px;border-left:1px solid var(--line-soft);padding-left:4px;}
+  .flash{animation:flashrow 1.6s var(--ease);}
+  @keyframes flashrow{0%,40%{background:rgba(232,163,61,.28)}100%{background:transparent}}
+
+  .foot{font-family:var(--mono);font-size:10.5px;color:var(--slate);margin-top:26px;line-height:1.7;}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:var(--panel-2);border:1px solid var(--line);
+    padding:9px 16px;border-radius:8px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .25s,transform .35s var(--ease);z-index:50;}
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+
+  @media (max-width:980px){
+    .stage{grid-template-columns:1fr;}
+    .insp{max-height:none;}
+    #map{height:460px;}
+    .stats{display:grid;grid-template-columns:1fr 1fr;width:100%;}
+    .crumbs{flex:1 1 0;}
+    .row{grid-template-columns:18px minmax(0,1fr) 80px 22px;}
+    .row .ct,.row .bcell{display:none;}
+    .search input,.search input:focus{width:100%;}
+    .search{flex:1 1 100%;}
+    .results{width:100%;}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hdr">
+    <div>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <p class="title">disk<span>map</span></p>
+      </div>
+      <div class="sub" id="rootpath"></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="st-size">0 B</b>total size</div>
+      <div class="stat"><b id="st-files">0</b>files</div>
+      <div class="stat"><b id="st-dirs">0</b>folders</div>
+      <div class="stat"><b id="st-time">0.0s</b>scan time</div>
+    </div>
+  </header>
+
+  <div class="bar">
+    <button class="up" id="up" title="Up one level (Esc)" aria-label="Up one level">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>
+    </button>
+    <nav class="crumbs" id="crumbs"></nav>
+    <div class="seg" id="mode" role="tablist" aria-label="Colour by">
+      <span class="knob"></span>
+      <button data-mode="type" class="on">Type</button>
+      <button data-mode="age">Age</button>
+      <button data-mode="folder">Folder</button>
+    </div>
+    <div class="search">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="5"/><path d="m11 11 3.5 3.5"/></svg>
+      <input id="q" type="search" placeholder="Find files and folders" autocomplete="off" spellcheck="false">
+      <kbd>/</kbd>
+      <div class="results" id="results"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div>
+      <div class="mapbox" id="mapbox">
+        <canvas id="map"></canvas>
+        <div class="hint" id="hint">click to zoom in · right-click or Esc to go up · / to search</div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <aside class="insp" id="insp"></aside>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-pane="p-largest">Largest files</button>
+    <button class="tab" data-pane="p-types">By file type</button>
+    <button class="tab" data-pane="p-old">Large &amp; untouched</button>
+    <button class="tab" data-pane="p-tree">Tree</button>
+    <span class="tabline" id="tabline"></span>
+  </div>
+  <section class="pane on" id="p-largest"><div class="card scroll" id="t-largest"></div></section>
+  <section class="pane" id="p-types"><p class="note">Click a type to light it up in the treemap.</p><div class="card scroll" id="t-types"></div></section>
+  <section class="pane" id="p-old"><p class="note" id="old-note"></p><div class="card scroll" id="t-old"></div></section>
+  <section class="pane" id="p-tree">
+    <div class="tree-tools">
+      <button class="btn" id="tr-collapse">Collapse all</button>
+      <button class="btn" id="tr-heavy">Follow the heaviest path</button>
+    </div>
+    <div class="card scroll"><div class="tree" id="tree"></div></div>
+  </section>
+
+  <div class="foot" id="foot"></div>
+</div>
+<div class="tip" id="tip"></div>
+<div class="toast" id="toast"></div>
+
+<script id="dm-data" type="application/json">__DM_DATA__</script>
+<script>
+(function(){
+"use strict";
+const DATA = JSON.parse(document.getElementById("dm-data").textContent);
+const META = DATA.meta, SEP = DATA.sep, TODAY = META.today;
+const $ = (s, el) => (el || document).querySelector(s);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const easeInOut = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const easeOutBack = t => { const c = 1.5; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function human(n){
+  const u = ["B","KB","MB","GB","TB","PB"]; let i = 0; n = +n;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return i === 0 ? Math.round(n) + " B" : n.toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1}) + " " + u[i];
+}
+const fmtInt = n => Math.round(n).toLocaleString();
+function fmtDay(d){ return d ? new Date(d * 864e5).toISOString().slice(0, 10) : ""; }
+function ago(d){
+  if (!d) return "";
+  const a = TODAY - d;
+  if (a < 1) return "today";
+  if (a < 60) return a + " day" + (a === 1 ? "" : "s") + " ago";
+  if (a < 730) return Math.round(a / 30.4) + " months ago";
+  return (a / 365.25).toFixed(1) + " years ago";
+}
+
+/* ------------------------------------------------------------ the tree */
+// Records are [name, size, day, flags, children?, extra?]; flags 1 dir, 2 link, 4 more, 8 error.
+let NID = 0;
+function mk(r, parent){
+  return {id: NID++, n: r[0], s: r[1], d: r[2], f: r[3], c: null, raw: Array.isArray(r[4]) ? r[4] : null, x: r[5], p: parent, cat: null};
+}
+const ROOT = mk(DATA.tree, null);
+ROOT.n = DATA.root;
+(function inflate(){
+  const stack = [ROOT];
+  while (stack.length){
+    const node = stack.pop();
+    if (!node.raw) continue;
+    node.c = node.raw.map(r => mk(r, node));
+    node.raw = null;
+    for (const k of node.c) if (k.c !== undefined) stack.push(k);
+  }
+})();
+const isDir = n => (n.f & 1) !== 0, isMore = n => (n.f & 4) !== 0, isLink = n => (n.f & 2) !== 0;
+const label = n => isMore(n) ? "… " + fmtInt(n.x) + " more items" : n.n;
+function pathOf(n){
+  const parts = [];
+  for (let k = n; k && k !== ROOT; k = k.p) parts.push(k.n);
+  parts.push(DATA.root.replace(/[\\/]+$/, ""));
+  return parts.reverse().join(SEP);
+}
+function relOf(n){
+  const parts = [];
+  for (let k = n; k && k !== ROOT; k = k.p) parts.push(k.n);
+  return parts.reverse().join(SEP);
+}
+function count(n){ return n.c ? n.c.reduce((a, k) => a + (isMore(k) ? k.x : 1), 0) : 0; }
+function isAncestor(a, b){ for (let k = b; k; k = k.p) if (k === a) return true; return false; }
+function depthOf(n){ let d = 0; for (let k = n; k.p; k = k.p) d++; return d; }
+function resolve(rel){
+  // Tables carry relative paths; walk names down, stopping at the deepest match.
+  let node = ROOT;
+  for (const part of rel.split(/[\\/]/)){
+    if (!part || !node.c) break;
+    if (!node._m){ node._m = new Map(); for (const k of node.c) if (!isMore(k)) node._m.set(k.n, k); }
+    const next = node._m.get(part);
+    if (!next) break;
+    node = next;
+  }
+  return node;
+}
+
+/* ------------------------------------------------------------ colours */
+const CATS = [
+  ["video",    "Video",     "#F0883E", "mp4 mkv mov avi wmv webm m4v flv mpg mpeg ts vob 3gp"],
+  ["image",    "Images",    "#E8C547", "jpg jpeg png gif bmp tif tiff webp heic heif raw cr2 cr3 nef arw dng psd svg ico exr hdr tga kra xcf"],
+  ["audio",    "Audio",     "#E5677C", "mp3 wav flac aac ogg m4a wma opus aiff aif mid midi"],
+  ["archive",  "Archives",  "#B07CE8", "zip rar 7z tar gz tgz bz2 xz zst iso img dmg cab lz4 pak"],
+  ["code",     "Code",      "#4FB3D9", "py js ts tsx jsx mjs cjs c h cpp hpp cc cs java kt go rs rb php swift lua gd gdshader sh ps1 bat cmd r rmd qmd sql html htm css scss vue svelte ipynb toml yaml yml ini cfg json5 tscn tres godot uproject uasset umap"],
+  ["doc",      "Documents", "#7FD1A8", "pdf doc docx xls xlsx ppt pptx odt ods odp txt md rtf csv tsv epub tex log pbix"],
+  ["binary",   "Programs",  "#E85D5D", "exe dll so dylib msi lib a o obj pdb sys bin dat jar class wasm pyd node apk"],
+  ["data",     "Data",      "#5B8DEF", "db sqlite sqlite3 mdb accdb parquet feather arrow h5 hdf5 npy npz pkl pickle rds rdata sav dta mat json xml vhdx vhd vmdk qcow2 bak"],
+  ["model",    "3D & assets","#3FC1B0", "blend fbx glb gltf usd usdz abc stl ply 3ds max ma mb unitypackage asset prefab mat shader ttf otf woff woff2"],
+  ["other",    "Other",     "#8A9BAE", ""],
+];
+const CAT_BY_EXT = new Map(), CAT_INFO = {};
+for (const [id, name, col, exts] of CATS){ CAT_INFO[id] = {name, col}; for (const e of exts.split(" ")) if (e) CAT_BY_EXT.set(e, id); }
+function extOf(name){ const i = name.lastIndexOf("."); return i > 0 ? name.slice(i + 1).toLowerCase() : ""; }
+function catOf(n){ if (n.cat == null) n.cat = isMore(n) ? "more" : CAT_BY_EXT.get(extOf(n.n)) || "other"; return n.cat; }
+const AGE_STOPS = ["#4FB3D9", "#7FD1A8", "#E8C547", "#F0883E", "#E5677C"];
+function hexRgb(h){ const v = parseInt(h.slice(1), 16); return [v >> 16, (v >> 8) & 255, v & 255]; }
+const AGE_LUT = Array.from({length: 64}, (_, i) => {
+  const t = i / 63 * (AGE_STOPS.length - 1), j = Math.min(Math.floor(t), AGE_STOPS.length - 2), f = t - j;
+  const a = hexRgb(AGE_STOPS[j]), b = hexRgb(AGE_STOPS[j + 1]);
+  return `rgb(${Math.round(lerp(a[0], b[0], f))},${Math.round(lerp(a[1], b[1], f))},${Math.round(lerp(a[2], b[2], f))})`;
+});
+function ageColor(d){
+  if (!d) return "#55677A";
+  const t = clamp(Math.log10(Math.max(TODAY - d, 0) + 1) / Math.log10(3650), 0, 1);
+  return AGE_LUT[Math.round(t * 63)];
+}
+const DIR_SHADES = ["#0F2740", "#14324F", "#193C5D", "#1E466A", "#23507A", "#285A86"];
+let mode = "type";
+function colorsFor(n, depth, top){
+  // Returns [fill, label ink].
+  if (isMore(n)) return ["more", "#C9D3DD"];
+  if (mode === "folder"){
+    const h = top ? (top._hue != null ? top._hue : 200) : 200;
+    return isDir(n) ? [`hsl(${h},38%,${14 + depth * 4}%)`, "#F2EFE9"] : [`hsl(${h},62%,${60 - Math.min(depth, 5) * 3}%)`, "#081522"];
+  }
+  if (isDir(n)) return [DIR_SHADES[Math.min(depth - 1, DIR_SHADES.length - 1)], "#F2EFE9"];
+  if (mode === "age") return [ageColor(n.d), "#081522"];
+  return [CAT_INFO[catOf(n)].col, "#081522"];
+}
+
+/* ------------------------------------------------------------ layout */
+const MAXD = Math.max(1, META.treemapDepth || 4);
+function squarify(items, x, y, w, h, total, out){
+  let i = 0; const n = items.length;
+  let scale = (w * h) / total;
+  while (i < n && w > 0.01 && h > 0.01){
+    const side = Math.min(w, h);
+    let sum = 0, mx = 0, mn = Infinity, worst = Infinity, j = i;
+    while (j < n){
+      const a = items[j].s * scale, s2 = sum + a, mx2 = Math.max(mx, a), mn2 = Math.min(mn, a);
+      const wst = Math.max(side * side * mx2 / (s2 * s2), (s2 * s2) / (side * side * mn2));
+      if (j > i && wst > worst) break;
+      worst = wst; sum = s2; mx = mx2; mn = mn2; j++;
+    }
+    if (w >= h){
+      const cw = sum / h; let cy = y;
+      for (let k = i; k < j; k++){ const ch = items[k].s * scale / cw; out(items[k], x, cy, cw, ch); cy += ch; }
+      x += cw; w -= cw;
+    } else {
+      const rh = sum / w; let cx = x;
+      for (let k = i; k < j; k++){ const cw = items[k].s * scale / rh; out(items[k], cx, y, cw, rh); cx += cw; }
+      y += rh; h -= rh;
+    }
+    i = j;
+  }
+}
+function buildLayout(focus, W, H){
+  const rects = [], map = new Map();
+  const kidsOf = n => n.c ? n.c.filter(k => k.s > 0).sort((a, b) => b.s - a.s) : [];
+  const fill = (node, x, y, w, h, depth, top) => {
+    const items = kidsOf(node);
+    if (!items.length) return;
+    const total = items.reduce((a, k) => a + k.s, 0);
+    squarify(items, x, y, w, h, total, (k, rx, ry, rw, rh) => {
+      if (rw < 0.6 || rh < 0.6) return;
+      const t = depth === 1 ? k : top;
+      const [col, ink] = colorsFor(k, depth, t);
+      const r = {n: k, x: rx, y: ry, w: rw, h: rh, d: depth, col, ink, head: 0, i: rects.length};
+      rects.push(r); map.set(k, r);
+      if (isDir(k) && k.c && depth < MAXD && rw > 14 && rh > 14){
+        const head = rw > 44 && rh > 36 ? 17 : 0, pad = rw > 30 && rh > 30 ? 2.5 : 1.5;
+        r.head = head;
+        const iw = rw - pad * 2, ih = rh - pad * 2 - head;
+        if (iw > 3 && ih > 3){ r.open = true; fill(k, rx + pad, ry + pad + head, iw, ih, depth + 1, t); }
+      }
+      if (isDir(k) && !r.open && mode !== "folder"){
+        // A folder drawn as a solid block takes on what it is mostly made of.
+        const sum = totalsFor(k);
+        if (mode === "type"){ const dom = topCat(sum); if (dom) r.col = mix(CAT_INFO[dom].col, r.col, .5); }
+        else if (sum._w) r.col = mix(ageColor(Math.round(sum._day / sum._w)), r.col, .5);
+      } else if (isDir(k) && !r.open){ r.col = `hsl(${t && t._hue != null ? t._hue : 200},45%,${34 - Math.min(depth, 4) * 2}%)`; }
+    });
+  };
+  if (focus.c){
+    if (mode === "folder") focus.c.filter(k => k.s > 0).sort((a, b) => b.s - a.s).forEach((k, i) => k._hue = (198 + i * 137.508) % 360);
+    fill(focus, 0, 0, W, H, 1, null);
+  }
+  return {focus, rects, map, W, H};
+}
+
+/* ------------------------------------------------------------ canvas */
+const canvas = $("#map"), ctx = canvas.getContext("2d");
+const base = document.createElement("canvas"), bctx = base.getContext("2d");
+let W = 0, H = 0, DPR = 1;
+const hatch = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 8;
+  const g = c.getContext("2d"); g.fillStyle = "#2A3E52"; g.fillRect(0, 0, 8, 8);
+  g.strokeStyle = "#3A5068"; g.lineWidth = 2; g.beginPath(); g.moveTo(-2, 10); g.lineTo(10, -2); g.stroke();
+  return ctx.createPattern(c, "repeat");
+})();
+
+function fitText(c, text, max){
+  if (c.measureText(text).width <= max) return text;
+  let lo = 0, hi = text.length;
+  while (lo < hi){ const m = (lo + hi + 1) >> 1; if (c.measureText(text.slice(0, m) + "…").width <= max) lo = m; else hi = m - 1; }
+  return lo > 0 ? text.slice(0, lo) + "…" : "";
+}
+
+let filter = null;              // {kind:"cat"|"ext"|"search", ...}
+function dimmed(r){
+  if (!filter) return false;
+  const n = r.n;
+  if (!isDir(n)) return !matches(n);
+  if (r.open) return false;
+  // A solid folder block stays lit only if something matching is inside it.
+  if (filter.kind === "search") return !(filter.anc.has(n) || matches(n));
+  const sum = totalsFor(n);
+  if (filter.kind === "cat") return !sum[filter.cat];
+  return !sum[CAT_BY_EXT.get(filter.ext.replace(/^\./, "")) || "other"];
+}
+function matches(n){
+  if (!filter || isDir(n)) return true;
+  if (filter.kind === "cat") return catOf(n) === filter.cat;
+  if (filter.kind === "ext") return ("." + extOf(n.n) === filter.ext) || (filter.ext === "(no extension)" && !extOf(n.n));
+  if (filter.kind === "search"){ for (let k = n; k; k = k.p) if (filter.set.has(k)) return true; return false; }
+  return true;
+}
+
+// T maps layout coords to screen: X = x*sx + tx. g scales each tile about its centre (intro).
+function drawLayout(c, L, T, alpha, intro){
+  if (alpha <= 0.002) return;
+  c.globalAlpha = alpha;
+  const font = "600 11.5px " + getComputedStyle(document.body).fontFamily;
+  const mono = "10.5px Cascadia Mono, Consolas, monospace";
+  for (const r of L.rects){
+    let X = r.x * T.sx + T.tx, Y = r.y * T.sy + T.ty, w = r.w * T.sx, h = r.h * T.sy;
+    if (X > W || Y > H || X + w < 0 || Y + h < 0) continue;
+    if (intro){
+      const delay = (r.x / L.W * .55 + r.y / L.H * .45) * 520 + (r.d - 1) * 90;
+      const g = easeOutBack(clamp((intro - delay) / 520, 0, 1));
+      if (g <= 0) continue;
+      const cx = X + w / 2, cy = Y + h / 2; w *= g; h *= g; X = cx - w / 2; Y = cy - h / 2;
+    }
+    const dim = dimmed(r);
+    c.globalAlpha = alpha * (dim ? .14 : 1);
+    c.fillStyle = r.col === "more" ? hatch : r.col;
+    c.fillRect(X, Y, w, h);
+    if (w > 5 && h > 5 && !isDir(r.n)){
+      c.fillStyle = "rgba(255,255,255,.16)"; c.fillRect(X, Y, w, 1); c.fillRect(X, Y, 1, h);
+      c.fillStyle = "rgba(0,0,0,.22)"; c.fillRect(X, Y + h - 1, w, 1); c.fillRect(X + w - 1, Y, 1, h);
+    }
+    c.strokeStyle = "rgba(8,21,34,.85)"; c.lineWidth = 1;
+    if (w > 2 && h > 2) c.strokeRect(X + .5, Y + .5, w - 1, h - 1);
+    c.globalAlpha = alpha * (dim ? .3 : 1);
+    if (isDir(r.n)){
+      const head = r.head * T.sy;
+      if (w > 44 && head > 10){
+        c.font = font; c.fillStyle = r.ink; c.textBaseline = "middle";
+        const sz = human(r.n.s), szw = (c.font = mono, c.measureText(sz).width);
+        c.font = font;
+        const name = fitText(c, r.n.n, w - szw - 18);
+        c.fillText(name, X + 6, Y + head / 2 + 2);
+        if (name){ c.font = mono; c.fillStyle = "rgba(232,163,61,.95)"; c.fillText(sz, X + w - szw - 6, Y + head / 2 + 2); }
+      }
+    } else if (w > 46 && h > 18){
+      c.font = font; c.fillStyle = r.ink; c.textBaseline = "top";
+      const name = fitText(c, label(r.n), w - 10);
+      c.fillText(name, X + 5, Y + 4);
+      if (h > 34 && name){ c.font = mono; c.globalAlpha *= .72; c.fillText(human(r.n.s), X + 5, Y + 19); }
+    }
+  }
+  c.globalAlpha = 1;
+}
+
+let L = null;                 // current layout
+let anim = null;              // zoom transition
+let introStart = REDUCED ? 0 : performance.now();
+let baseDirty = true, raf = 0;
+let hover = null, hoverLink = null, selected = null;
+const ripples = [], flashes = [];
+
+function resize(){
+  const rect = canvas.getBoundingClientRect();
+  DPR = window.devicePixelRatio || 1;
+  W = Math.max(50, rect.width); H = Math.max(50, rect.height);
+  for (const c of [canvas, base]){ c.width = Math.round(W * DPR); c.height = Math.round(H * DPR); }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0); bctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  L = buildLayout(L ? L.focus : ROOT, W, H);
+  baseDirty = true; kick();
+}
+const ID = {sx: 1, sy: 1, tx: 0, ty: 0};
+function rectT(r, p){
+  // Transform taking the full view [0,W]x[0,H] onto rect r, eased by p toward identity.
+  const x = lerp(r.x, 0, p), y = lerp(r.y, 0, p), w = lerp(r.w, W, p), h = lerp(r.h, H, p);
+  return {sx: w / W, sy: h / H, tx: x, ty: y, x, y, w, h};
+}
+function kick(){ if (!raf) raf = requestAnimationFrame(frame); }
+function paintBg(c){ c.fillStyle = "#0B1E33"; c.fillRect(0, 0, W, H); }
+
+function frame(now){
+  raf = 0;
+  let busy = false;
+  if (anim){
+    const p0 = clamp((now - anim.t0) / anim.dur, 0, 1), e = easeInOut(p0);
+    const p = anim.dir > 0 ? e : 1 - e;           // 0 = outer view, 1 = inner view
+    const inner = rectT(anim.r, p);
+    // The outer layout is scaled so anim.r grows to fill whatever the inner frame covers.
+    const k = inner.w / anim.r.w, kh = inner.h / anim.r.h;
+    const outerT = {sx: k, sy: kh, tx: inner.x - anim.r.x * k, ty: inner.y - anim.r.y * kh};
+    paintBg(ctx);
+    drawLayout(ctx, anim.outer, outerT, 1 - p * .85, 0);
+    const ia = clamp(p * 1.4 - .1, 0, 1);
+    ctx.save(); ctx.beginPath(); ctx.rect(inner.x, inner.y, inner.w, inner.h); ctx.clip();
+    ctx.globalAlpha = ia; paintBg(ctx); ctx.globalAlpha = 1;
+    drawLayout(ctx, anim.inner, inner, ia, 0);
+    ctx.restore();
+    ctx.strokeStyle = `rgba(79,179,217,${.9 * Math.sin(p * Math.PI)})`; ctx.lineWidth = 2;
+    ctx.strokeRect(inner.x + 1, inner.y + 1, inner.w - 2, inner.h - 2);
+    if (p0 >= 1){ const done = anim.done; anim = null; baseDirty = true; done && done(); }
+    busy = true;
+  } else if (introStart){
+    const t = now - introStart;
+    paintBg(ctx); drawLayout(ctx, L, ID, 1, Math.max(t, .001));
+    if (t > 520 + 520 + MAXD * 90){ introStart = 0; baseDirty = true; }
+    busy = true;
+  } else {
+    if (baseDirty){ paintBg(bctx); drawLayout(bctx, L, ID, 1, 0); baseDirty = false; }
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(base, 0, 0); ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    busy = overlay(now) || busy;
+  }
+  if (busy) kick();
+}
+
+function outline(r, color, width, glow){
+  ctx.save();
+  if (glow){ ctx.shadowColor = color; ctx.shadowBlur = glow; }
+  ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.strokeRect(r.x + width / 2, r.y + width / 2, r.w - width, r.h - width);
+  ctx.restore();
+}
+function overlay(now){
+  let busy = false;
+  if (filter && filter.kind === "search"){
+    const pulse = .55 + .45 * Math.sin(now / 260);
+    let drawn = 0;
+    for (const r of L.rects){ if (drawn > 600) break; if (filter.set.has(r.n)){ outline(r, `rgba(242,239,233,${pulse})`, 1.5, 0); drawn++; } }
+    busy = true;
+  }
+  const hr = hover && L.map.get(hover);
+  if (hr){
+    // Light the folder chain too, so you can see what the tile belongs to.
+    for (let k = hover.p; k && k !== L.focus; k = k.p){ const pr = L.map.get(k); if (pr) outline(pr, "rgba(79,179,217,.55)", 1.5, 0); }
+    ctx.fillStyle = "rgba(255,255,255,.10)"; ctx.fillRect(hr.x, hr.y, hr.w, hr.h);
+    outline(hr, "#F2EFE9", 2, 12);
+  }
+  const lr = hoverLink && L.map.get(hoverLink);
+  if (lr){ ctx.fillStyle = "rgba(79,179,217,.22)"; ctx.fillRect(lr.x, lr.y, lr.w, lr.h); outline(lr, "#4FB3D9", 2.5, 16); }
+  const sr = selected && L.map.get(selected);
+  if (sr){
+    ctx.save(); ctx.setLineDash([6, 4]); ctx.lineDashOffset = -now / 40;
+    outline(sr, "#E8A33D", 2, 0); ctx.restore(); busy = true;
+  }
+  for (let i = flashes.length - 1; i >= 0; i--){
+    const f = flashes[i], t = (now - f.t0) / 1400, r = L.map.get(f.n);
+    if (t >= 1 || !r){ flashes.splice(i, 1); continue; }
+    const g = 10 * (1 - easeOut(t)) + 0;
+    ctx.save(); ctx.globalAlpha = 1 - t;
+    ctx.strokeStyle = "#E8A33D"; ctx.lineWidth = 3; ctx.shadowColor = "#E8A33D"; ctx.shadowBlur = 20;
+    ctx.strokeRect(r.x - g, r.y - g, r.w + g * 2, r.h + g * 2);
+    ctx.restore(); busy = true;
+  }
+  for (let i = ripples.length - 1; i >= 0; i--){
+    const rp = ripples[i], t = (now - rp.t0) / 520;
+    if (t >= 1){ ripples.splice(i, 1); continue; }
+    ctx.beginPath(); ctx.arc(rp.x, rp.y, 6 + easeOut(t) * 46, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(242,239,233,${.6 * (1 - t)})`; ctx.lineWidth = 2; ctx.stroke(); busy = true;
+  }
+  return busy;
+}
+
+/* ------------------------------------------------------------ navigation */
+let queue = Promise.resolve();
+function zoomTo(target, opts = {}){
+  queue = queue.then(() => new Promise(res => go(target, opts, res)));
+  return queue;
+}
+function go(target, opts, res){
+  if (!target || !isDir(target)) target = target && target.p || ROOT;
+  const from = L.focus;
+  if (target === from){ res(); return; }
+  const dur = REDUCED ? 1 : (opts.fast ? 380 : 620);
+  if (isAncestor(from, target)){
+    // Zoom in through the deepest ancestor of target that is visible now.
+    let k = target; while (k && !L.map.has(k)) k = k.p;
+    const via = k && L.map.get(k);
+    if (via && k === target){ startZoom(L, buildLayout(target, W, H), via, +1, dur, res); }
+    else if (via){ const mid = k; startZoom(L, buildLayout(mid, W, H), via, +1, dur * .8, () => { go(target, {fast: true}, res); }); }
+    else { L = buildLayout(target, W, H); afterNav(); res(); }
+  } else if (isAncestor(target, from)){
+    const outer = buildLayout(target, W, H);
+    let k = from; while (k && !outer.map.has(k)) k = k.p;
+    const via = k && outer.map.get(k);
+    if (via){ startZoom(outer, L, via, -1, dur, res); L = outer; afterNav(); }
+    else { L = outer; afterNav(); res(); }
+  } else {
+    // Unrelated folders: climb to the common ancestor, then dive.
+    let common = from; while (common && !isAncestor(common, target)) common = common.p;
+    go(common || ROOT, {fast: true}, () => go(target, {fast: true}, res));
+  }
+}
+function startZoom(outer, inner, r, dir, dur, done){
+  anim = {outer, inner, r: {x: r.x, y: r.y, w: Math.max(r.w, 1), h: Math.max(r.h, 1)}, dir, t0: performance.now(), dur,
+          done: () => { if (dir > 0){ L = inner; afterNav(); } done && done(); }};
+  introStart = 0; hover = null; hideTip(); kick();
+}
+function afterNav(){ baseDirty = true; renderCrumbs(); renderInspector(selected && isAncestor(L.focus, selected) ? selected : L.focus); renderLegend(); kick(); }
+function up(){ if (L.focus.p) zoomTo(L.focus.p); }
+
+function locate(n, scroll = true){
+  if (!n) return;
+  if (scroll) $("#mapbox").scrollIntoView({behavior: REDUCED ? "auto" : "smooth", block: "center"});
+  selected = n === ROOT ? null : n;
+  zoomTo(isDir(n) && n !== ROOT ? (n.p || ROOT) : n.p || ROOT).then(() => {
+    renderInspector(n);
+    flashes.push({n, t0: performance.now()}); kick();
+  });
+}
+
+/* ------------------------------------------------------------ pointer */
+function hitTest(x, y){
+  for (let i = L.rects.length - 1; i >= 0; i--){ const r = L.rects[i]; if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) return r; }
+  return null;
+}
+const tip = $("#tip");
+function showTip(n, cx, cy){
+  const parent = n.p || n, pct = parent.s ? n.s / parent.s * 100 : 100, tot = ROOT.s ? n.s / ROOT.s * 100 : 100;
+  const col = isDir(n) ? "#4FB3D9" : isMore(n) ? "#3A5068" : mode === "age" ? ageColor(n.d) : CAT_INFO[catOf(n)].col;
+  const kind = isMore(n) ? "collapsed items" : isDir(n) ? `folder · ${fmtInt(count(n))} items` : `${CAT_INFO[catOf(n)].name.toLowerCase()} · .${extOf(n.n) || "—"}`;
+  tip.innerHTML = `<div class="t-name"><span class="sw" style="background:${col}"></span>${esc(label(n))}</div>
+    <div class="t-size">${human(n.s)}</div>
+    <div class="t-bar"><i style="width:${clamp(pct, 0, 100).toFixed(1)}%"></i></div>
+    <div class="t-dim">${pct.toFixed(1)}% of ${esc(parent === n ? "total" : parent.n)} · ${tot.toFixed(2)}% of everything<br>
+    ${kind}${n.d ? `<br>modified ${fmtDay(n.d)} · ${ago(n.d)}` : ""}</div>`;
+  tip.classList.add("show");
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let tx = cx + 16, ty = cy + 16;
+  if (tx + tw > innerWidth - 8) tx = cx - tw - 16;
+  if (ty + th > innerHeight - 8) ty = cy - th - 16;
+  tip.style.left = Math.max(8, tx) + "px"; tip.style.top = Math.max(8, ty) + "px";
+}
+function hideTip(){ tip.classList.remove("show"); }
+function pos(e){ const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; }
+
+canvas.addEventListener("mousemove", e => {
+  if (anim) return;
+  const [x, y] = pos(e), r = hitTest(x, y);
+  const n = r ? r.n : null;
+  if (n !== hover){ hover = n; kick(); }
+  if (n) showTip(n, e.clientX, e.clientY); else hideTip();
+});
+canvas.addEventListener("mouseleave", () => { hover = null; hideTip(); kick(); });
+canvas.addEventListener("click", e => {
+  if (anim) return;
+  const [x, y] = pos(e), r = hitTest(x, y);
+  ripples.push({x, y, t0: performance.now()}); kick();
+  $("#hint").style.opacity = 0;
+  if (!r) return;
+  // A folder's header or solid block opens that folder; a file steps one level toward it,
+  // and a file sitting directly in the focus gets selected instead.
+  let target = r.n;
+  if (!isDir(r.n)){ target = r.n; while (target.p && target.p !== L.focus) target = target.p; }
+  if (target === r.n && !isDir(r.n)){ selected = r.n; renderInspector(r.n); kick(); return; }
+  if (!isDir(r.n)) selected = r.n;
+  zoomTo(target);
+});
+canvas.addEventListener("contextmenu", e => { e.preventDefault(); if (!anim) up(); });
+addEventListener("keydown", e => {
+  const typing = /INPUT|TEXTAREA/.test(document.activeElement.tagName);
+  if (e.key === "/" && !typing){ e.preventDefault(); $("#q").focus(); return; }
+  if (typing) return;
+  if (e.key === "Escape" || e.key === "Backspace"){ e.preventDefault(); if (filter && filter.kind !== "search"){ setFilter(null); } else up(); }
+});
+$("#up").addEventListener("click", up);
+let rz = 0; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(resize, 120); });
+
+/* ------------------------------------------------------------ breadcrumbs */
+function renderCrumbs(){
+  const nav = $("#crumbs"); nav.innerHTML = "";
+  const chain = []; for (let k = L.focus; k; k = k.p) chain.unshift(k);
+  const shown = chain.length > 6 ? [chain[0], null, ...chain.slice(-4)] : chain;
+  shown.forEach((k, i) => {
+    if (i) nav.appendChild(el("span", "crumb-sep", "›"));
+    if (!k){ nav.appendChild(el("span", "crumb-sep", "…")); return; }
+    const b = el("button", "crumb" + (k === L.focus ? " cur" : ""));
+    b.textContent = k === ROOT ? (DATA.root.split(/[\\/]/).filter(Boolean).pop() || DATA.root) : k.n;
+    b.title = pathOf(k) + " — " + human(k.s);
+    b.style.animationDelay = (i * 30) + "ms";
+    if (k !== L.focus) b.onclick = () => zoomTo(k);
+    nav.appendChild(b);
+  });
+  $("#up").disabled = !L.focus.p;
+}
+
+/* ------------------------------------------------------------ inspector */
+function tween(node, from, to, fmt, dur = 700){
+  if (REDUCED || from === to){ node.textContent = fmt(to); return; }
+  const t0 = performance.now();
+  const step = now => { const t = clamp((now - t0) / dur, 0, 1); node.textContent = fmt(lerp(from, to, easeOut(t))); if (t < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+let lastInspSize = 0;
+function swatch(n, i, top){
+  if (isMore(n)) return "#3A5068";
+  if (isDir(n)) return mode === "folder" ? `hsl(${top && top._hue != null ? top._hue : (198 + i * 137.508) % 360},55%,55%)` : "#4FB3D9";
+  return mode === "age" ? ageColor(n.d) : CAT_INFO[catOf(n)].col;
+}
+function renderInspector(n){
+  const box = $("#insp"); box.innerHTML = "";
+  const dir = isDir(n), parent = n.p;
+  box.appendChild(el("div", "insp-kind", n === L.focus ? "viewing" : dir ? "folder" : isMore(n) ? "collapsed" : "file"));
+  const name = el("div", "insp-name"); name.textContent = n === ROOT ? DATA.root : label(n); box.appendChild(name);
+  const size = el("div", "insp-size"); box.appendChild(size); tween(size, lastInspSize, n.s, human); lastInspSize = n.s;
+  const meta = [];
+  if (parent) meta.push(`<b>${(parent.s ? n.s / parent.s * 100 : 0).toFixed(1)}%</b> of ${esc(parent.n === DATA.root ? "the root" : parent.n)}`);
+  meta.push(`<b>${(ROOT.s ? n.s / ROOT.s * 100 : 0).toFixed(2)}%</b> of everything`);
+  if (dir) meta.push(`<b>${fmtInt(count(n))}</b> items here`);
+  else if (!isMore(n)) meta.push(`${esc(CAT_INFO[catOf(n)].name)} · .${esc(extOf(n.n) || "—")}`);
+  if (n.d) meta.push(`modified <b>${fmtDay(n.d)}</b> · ${ago(n.d)}`);
+  if (n.f & 8) meta.push(`<span style="color:var(--danger)">${esc(n.x)}</span>`);
+  if (isLink(n)) meta.push(`<span style="color:var(--cyan)">symlink / junction, not followed</span>`);
+  box.appendChild(el("div", "insp-meta", meta.join("<br>")));
+
+  const acts = el("div", "acts");
+  const copy = el("button", "btn", "Copy path");
+  copy.onclick = () => copyText(pathOf(n)).then(() => { copy.textContent = "Copied ✓"; copy.classList.add("ok"); setTimeout(() => { copy.textContent = "Copy path"; copy.classList.remove("ok"); }, 1400); });
+  acts.appendChild(copy);
+  if (dir && n !== L.focus){ const z = el("button", "btn", "Zoom in"); z.onclick = () => zoomTo(n); acts.appendChild(z); }
+  if (n !== L.focus && !dir){ const back = el("button", "btn", "Back to folder"); back.onclick = () => { selected = null; renderInspector(L.focus); kick(); }; acts.appendChild(back); }
+  if (dir){ const t = el("button", "btn", "Show in tree"); t.onclick = () => revealInTree(n); acts.appendChild(t); }
+  box.appendChild(acts);
+
+  if (dir && n.c && n.c.length){
+    const kids = n.c.filter(k => k.s > 0).sort((a, b) => b.s - a.s);
+    const comp = el("div", "comp");
+    if (mode === "type"){
+      // By type, the bar is what this folder is made of; click a slice to highlight that kind.
+      const sum = totalsFor(n), ids = CATS.map(c => c[0]).filter(id => sum[id]).sort((a, b) => sum[b] - sum[a]);
+      ids.forEach((id, i) => {
+        const seg = el("i"); seg.style.width = (sum[id] / n.s * 100) + "%"; seg.style.background = CAT_INFO[id].col;
+        seg.style.animationDelay = (i * 45) + "ms"; seg.title = CAT_INFO[id].name + " — " + human(sum[id]);
+        seg.onclick = () => setFilter(filter && filter.cat === id ? null : {kind: "cat", cat: id});
+        comp.appendChild(seg);
+      });
+    } else kids.slice(0, 14).forEach((k, i) => {
+      const seg = el("i"); seg.style.width = (k.s / n.s * 100) + "%"; seg.style.background = swatch(k, i, k);
+      seg.style.animationDelay = (i * 35) + "ms"; seg.title = label(k) + " — " + human(k.s);
+      seg.onmouseenter = () => { hoverLink = k; kick(); }; seg.onmouseleave = () => { hoverLink = null; kick(); };
+      seg.onclick = () => isDir(k) ? zoomTo(k) : (selected = k, renderInspector(k), kick());
+      comp.appendChild(seg);
+    });
+    box.appendChild(comp);
+    const list = el("div", "kids");
+    const max = kids.length ? kids[0].s : 1;
+    kids.slice(0, 60).forEach((k, i) => {
+      const row = el("div", "kid");
+      row.style.animationDelay = Math.min(i * 22, 500) + "ms";
+      const col = swatch(k, i, k);
+      row.innerHTML = `<span class="sw" style="background:${col}"></span><span class="nm">${esc(label(k))}${isDir(k) ? "/" : ""}</span><span class="sz">${human(k.s)}</span>
+        <span class="kb"><i style="width:${(k.s / max * 100).toFixed(1)}%;background:${col};animation-delay:${Math.min(i * 22, 500) + 120}ms"></i></span>`;
+      row.onmouseenter = () => { hoverLink = k; kick(); };
+      row.onmouseleave = () => { hoverLink = null; kick(); };
+      row.onclick = () => { hoverLink = null; if (isDir(k)) zoomTo(k); else { selected = k; renderInspector(k); kick(); } };
+      list.appendChild(row);
+    });
+    if (kids.length > 60) list.appendChild(el("div", "insp-meta", `+ ${kids.length - 60} smaller entries`));
+    box.appendChild(list);
+  }
+}
+function copyText(s){
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(s).catch(() => fallbackCopy(s));
+  return Promise.resolve(fallbackCopy(s));
+}
+function fallbackCopy(s){ const t = el("textarea"); t.value = s; document.body.appendChild(t); t.select(); try { document.execCommand("copy"); } catch (e) {} t.remove(); }
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800); }
+
+/* ------------------------------------------------------------ legend + filters */
+const catTotals = new Map();
+function totalsFor(focus){
+  // Bytes per category under a folder, plus a size-weighted modified day (_day / _w).
+  if (catTotals.has(focus)) return catTotals.get(focus);
+  const acc = {_day: 0, _w: 0}; const stack = [focus];
+  while (stack.length){
+    const n = stack.pop();
+    if (n.c){ for (const k of n.c) stack.push(k); continue; }
+    if (isDir(n) || isMore(n)) continue;
+    acc[catOf(n)] = (acc[catOf(n)] || 0) + n.s;
+    if (n.d && n.s){ acc._day += n.d * n.s; acc._w += n.s; }
+  }
+  catTotals.set(focus, acc); return acc;
+}
+function topCat(sum){ let best = null; for (const [id] of CATS) if (sum[id] && (!best || sum[id] > sum[best])) best = id; return best; }
+function mix(a, b, t){
+  const p = c => c[0] === "#" ? hexRgb(c) : c.match(/\d+/g).map(Number);
+  const x = p(a), y = p(b);
+  return `rgb(${Math.round(lerp(x[0], y[0], t))},${Math.round(lerp(x[1], y[1], t))},${Math.round(lerp(x[2], y[2], t))})`;
+}
+function setFilter(f){
+  filter = f; baseDirty = true; kick(); renderLegend();
+}
+function renderLegend(){
+  const lg = $("#legend"); lg.innerHTML = ""; lg.classList.toggle("filtering", !!(filter && filter.kind === "cat"));
+  if (mode === "type"){
+    const tot = totalsFor(L.focus);
+    CATS.map(c => c[0]).filter(id => tot[id]).sort((a, b) => tot[b] - tot[a]).forEach((id, i) => {
+      const b = el("button", "lg" + (filter && filter.kind === "cat" && filter.cat === id ? " on" : ""));
+      b.style.animationDelay = (i * 30) + "ms";
+      b.innerHTML = `<span class="sw" style="background:${CAT_INFO[id].col}"></span>${CAT_INFO[id].name}<small>${human(tot[id])}</small>`;
+      b.onclick = () => setFilter(filter && filter.kind === "cat" && filter.cat === id ? null : {kind: "cat", cat: id});
+      lg.appendChild(b);
+    });
+  } else if (mode === "age"){
+    lg.appendChild(el("div", "grad", `<span>today</span><i style="background:linear-gradient(90deg,${AGE_STOPS.join(",")})"></i><span>10+ years</span>`));
+  } else {
+    lg.appendChild(el("div", "grad", "<span>each top-level folder in this view gets its own hue; files are brighter than folders</span>"));
+  }
+  if (filter && filter.kind !== "search"){
+    const p = el("span", "filterpill show"); p.id = "filterpill";
+    p.innerHTML = `highlighting ${esc(filter.kind === "cat" ? CAT_INFO[filter.cat].name : filter.ext)} <button class="btn">clear</button>`;
+    p.querySelector("button").onclick = () => setFilter(null);
+    lg.appendChild(p);
+  }
+}
+(function modeSwitch(){
+  const seg = $("#mode"), knob = $(".knob", seg);
+  const place = b => { knob.style.left = b.offsetLeft + "px"; knob.style.width = b.offsetWidth + "px"; };
+  seg.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    seg.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); place(b);
+    mode = b.dataset.mode;
+    if (filter && filter.kind === "cat" && mode !== "type") setFilter(null);
+    // Re-colour by crossfading the old frame out over the new one.
+    const old = L; L = buildLayout(L.focus, W, H);
+    if (!REDUCED){ anim = {outer: old, inner: L, r: {x: 0, y: 0, w: W, h: H}, dir: 1, t0: performance.now(), dur: 420, done: null}; }
+    afterNav();
+  }));
+  requestAnimationFrame(() => place($("button.on", seg)));
+})();
+
+/* ------------------------------------------------------------ search */
+const q = $("#q"), results = $("#results");
+let allNodes = null, resIdx = -1, resList = [];
+function searchAll(term){
+  if (!allNodes){ allNodes = []; const st = [ROOT]; while (st.length){ const n = st.pop(); if (n !== ROOT && !isMore(n)) allNodes.push(n); if (n.c) for (const k of n.c) st.push(k); } }
+  const t = term.toLowerCase(), out = [];
+  for (const n of allNodes) if (n.n.toLowerCase().includes(t)) out.push(n);
+  return out.sort((a, b) => b.s - a.s);
+}
+let qt = 0;
+q.addEventListener("input", () => { clearTimeout(qt); qt = setTimeout(runSearch, 120); });
+q.addEventListener("focus", () => { if (resList.length) results.classList.add("show"); });
+q.addEventListener("blur", () => setTimeout(() => results.classList.remove("show"), 160));
+q.addEventListener("keydown", e => {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); resIdx = clamp(resIdx + (e.key === "ArrowDown" ? 1 : -1), 0, Math.min(resList.length, 80) - 1); paintResults(); }
+  else if (e.key === "Enter" && resList.length){ e.preventDefault(); locate(resList[Math.max(resIdx, 0)]); q.blur(); }
+  else if (e.key === "Escape"){ e.stopPropagation(); q.value = ""; runSearch(); q.blur(); }
+});
+function runSearch(){
+  const term = q.value.trim();
+  if (term.length < 2){ resList = []; results.classList.remove("show"); if (filter && filter.kind === "search") setFilter(null); return; }
+  resList = searchAll(term); resIdx = -1;
+  const set = new Set(resList.slice(0, 20000)), anc = new Set();
+  for (const n of set) for (let k = n.p; k && !anc.has(k); k = k.p) anc.add(k);
+  setFilter(resList.length ? {kind: "search", set, anc} : null);
+  paintResults(); results.classList.add("show");
+}
+function paintResults(){
+  results.innerHTML = "";
+  const total = resList.reduce((a, n) => a + (isDir(n) ? 0 : n.s), 0);
+  results.appendChild(el("div", "res-head", resList.length ? `${fmtInt(resList.length)} matches · ${human(total)} in matching files · ↑↓ Enter` : "No matches"));
+  resList.slice(0, 80).forEach((n, i) => {
+    const r = el("div", "res" + (i === resIdx ? " on" : ""));
+    const col = isDir(n) ? "#4FB3D9" : CAT_INFO[catOf(n)].col;
+    r.innerHTML = `<span class="sw" style="background:${col}"></span><div style="min-width:0"><div class="nm">${esc(n.n)}${isDir(n) ? "/" : ""}</div><div class="p">${esc(relOf(n.p || ROOT) || "/")}</div></div><span class="sz">${human(n.s)}</span>`;
+    r.onmousedown = e => { e.preventDefault(); locate(n); q.blur(); };
+    r.onmouseenter = () => { hoverLink = n; kick(); };
+    r.onmouseleave = () => { hoverLink = null; kick(); };
+    results.appendChild(r);
+    if (i === resIdx) r.scrollIntoView({block: "nearest"});
+  });
+}
+
+/* ------------------------------------------------------------ tables */
+function splitPath(rel){
+  const i = Math.max(rel.lastIndexOf("/"), rel.lastIndexOf("\\"));
+  return i < 0 ? `${esc(rel)}` : `<span class="dir">${esc(rel.slice(0, i + 1))}</span>${esc(rel.slice(i + 1))}`;
+}
+function fileTable(host, rows, showAge){
+  if (!rows.length){ host.innerHTML = `<div class="empty">Nothing to show.</div>`; return; }
+  const max = rows[0][0] || 1;
+  const head = `<thead><tr><th>#</th><th style="text-align:right">Size</th><th></th><th>File</th><th>${showAge ? "Untouched for" : "Modified"}</th><th></th></tr></thead>`;
+  const body = rows.map(([size, rel, day], i) => {
+    const col = CAT_INFO[CAT_BY_EXT.get(extOf(rel)) || "other"].col, d = Math.min(i * 18, 700);
+    return `<tr data-i="${i}" style="animation-delay:${d}ms"><td class="rank">${i + 1}</td><td class="num">${human(size)}</td>
+      <td><span class="meter"><i style="width:${(size / max * 100).toFixed(1)}%;background:${col};animation-delay:${d + 100}ms"></i></span></td>
+      <td class="path">${splitPath(rel)}</td><td class="dim">${showAge ? ago(day) : fmtDay(day)}</td><td class="go">locate →</td></tr>`;
+  }).join("");
+  host.innerHTML = `<table>${head}<tbody>${body}</tbody></table>`;
+  host.querySelector("tbody").addEventListener("click", e => { const tr = e.target.closest("tr"); if (tr) locate(resolve(rows[+tr.dataset.i][1])); });
+  host.querySelector("tbody").addEventListener("mouseover", e => { const tr = e.target.closest("tr"); if (tr){ hoverLink = resolve(rows[+tr.dataset.i][1]); kick(); } });
+  host.addEventListener("mouseleave", () => { hoverLink = null; kick(); });
+}
+function typeTable(host){
+  const rows = DATA.ext; if (!rows.length){ host.innerHTML = `<div class="empty">Nothing to show.</div>`; return; }
+  const max = rows[0][2] || 1;
+  const body = rows.map(([ext, cnt, size], i) => {
+    const cat = CAT_BY_EXT.get(ext.replace(/^\./, "")) || "other", col = CAT_INFO[cat].col, d = Math.min(i * 22, 700);
+    const pct = ROOT.s ? size / ROOT.s * 100 : 0;
+    return `<tr data-i="${i}" style="animation-delay:${d}ms"><td><span class="sw" style="background:${col};margin-right:8px;vertical-align:-1px"></span>${esc(ext)}</td>
+      <td class="dim">${esc(CAT_INFO[cat].name)}</td><td class="num">${human(size)}</td><td class="dim" style="text-align:right">${fmtInt(cnt)}</td>
+      <td><span class="meter"><i style="width:${(size / max * 100).toFixed(1)}%;background:${col};animation-delay:${d + 100}ms"></i></span><span class="dim">${pct.toFixed(1)}%</span></td>
+      <td class="go">highlight →</td></tr>`;
+  }).join("");
+  host.innerHTML = `<table><thead><tr><th>Type</th><th>Kind</th><th style="text-align:right">Size</th><th style="text-align:right">Files</th><th>Share</th><th></th></tr></thead><tbody>${body}</tbody></table>`;
+  host.querySelector("tbody").addEventListener("click", e => {
+    const tr = e.target.closest("tr"); if (!tr) return;
+    const ext = rows[+tr.dataset.i][0];
+    if (mode !== "type") $('#mode button[data-mode="type"]').click();
+    setFilter({kind: "ext", ext});
+    $("#mapbox").scrollIntoView({behavior: "smooth", block: "center"});
+    toast(`Highlighting ${ext} files — Esc to clear`);
+  });
+}
+
+/* ------------------------------------------------------------ tree */
+const treeHost = $("#tree");
+function treeRow(n, parentSize){
+  const wrap = el("div", "node"); wrap._n = n;
+  const row = el("div", "row");
+  const dir = isDir(n) && n.c && n.c.length;
+  const pct = parentSize ? n.s / parentSize * 100 : 100;
+  const col = isDir(n) ? "#4FB3D9" : isMore(n) ? "#3A5068" : CAT_INFO[catOf(n)].col;
+  row.innerHTML = `<span class="caret">${dir ? "▸" : ""}</span>
+    <span class="nm${isDir(n) ? " dirn" : ""}">${esc(label(n))}${isDir(n) ? "/" : ""}${isLink(n) ? '<span class="lnk">link</span>' : ""}${n.f & 8 ? `<span class="err">(${esc(n.x)})</span>` : ""}</span>
+    <span class="sz">${human(n.s)}</span>
+    <span class="bcell"><span class="meter" style="width:100px"><i style="width:${clamp(pct, 0, 100).toFixed(1)}%;background:${col}"></i></span></span>
+    <span class="ct">${isDir(n) ? fmtInt(count(n)) + " items" : fmtDay(n.d)}</span>
+    <span class="loc" title="Show in treemap">◎</span>`;
+  wrap.appendChild(row);
+  if (dir){
+    const kw = el("div", "kidsw"), inner = el("div"); kw.appendChild(inner); wrap.appendChild(kw);
+    row.addEventListener("click", e => { if (e.target.classList.contains("loc")) return; toggle(wrap); });
+  }
+  row.querySelector(".loc").addEventListener("click", e => { e.stopPropagation(); locate(n); });
+  row.addEventListener("mouseenter", () => { hoverLink = n; kick(); });
+  row.addEventListener("mouseleave", () => { hoverLink = null; kick(); });
+  return wrap;
+}
+function fillKids(wrap){
+  const inner = wrap.querySelector(":scope > .kidsw > div");
+  if (inner.childElementCount) return;
+  const n = wrap._n, frag = document.createDocumentFragment();
+  for (const k of n.c) frag.appendChild(treeRow(k, n.s));
+  inner.appendChild(frag);
+}
+function toggle(wrap, open){
+  if (!wrap.querySelector(":scope > .kidsw")) return;
+  const want = open == null ? !wrap.classList.contains("open") : open;
+  if (want) fillKids(wrap);
+  wrap.classList.toggle("open", want);
+}
+function renderTree(){
+  treeHost.innerHTML = "";
+  const top = treeRow(ROOT, 0); treeHost.appendChild(top);
+  top.querySelector(".nm").textContent = DATA.root;
+  if (ROOT.c && ROOT.c.length) toggle(top, true);
+}
+function nodeWrap(n){
+  // Opens every folder on the way down so the row exists, then returns it.
+  const chain = []; for (let k = n; k; k = k.p) chain.unshift(k);
+  let wrap = treeHost.firstElementChild;
+  for (let i = 1; i < chain.length; i++){
+    toggle(wrap, true);
+    const inner = wrap.querySelector(":scope > .kidsw > div");
+    const next = [...inner.children].find(w => w._n === chain[i]);
+    if (!next) break;
+    wrap = next;
+  }
+  return wrap;
+}
+function revealInTree(n){
+  selectTab("p-tree");
+  const w = nodeWrap(n);
+  if (isDir(n)) toggle(w, true);
+  setTimeout(() => { const r = w.querySelector(".row"); r.scrollIntoView({behavior: "smooth", block: "center"}); r.classList.remove("flash"); void r.offsetWidth; r.classList.add("flash"); }, 380);
+}
+$("#tr-collapse").onclick = () => { treeHost.querySelectorAll(".node.open").forEach(w => w.classList.remove("open")); toggle(treeHost.firstElementChild, true); };
+$("#tr-heavy").onclick = () => {
+  // Open the biggest child at each level, one beat at a time.
+  let n = ROOT, steps = [];
+  while (n.c && n.c.length){ const k = n.c.filter(x => isDir(x) && x.c && x.c.length).sort((a, b) => b.s - a.s)[0]; if (!k) break; steps.push(k); n = k; if (steps.length > 14) break; }
+  steps.forEach((k, i) => setTimeout(() => {
+    const w = nodeWrap(k); toggle(w, true);
+    const r = w.querySelector(".row"); r.classList.remove("flash"); void r.offsetWidth; r.classList.add("flash");
+    if (i === steps.length - 1) r.scrollIntoView({behavior: "smooth", block: "center"});
+  }, REDUCED ? 0 : i * 260));
+};
+
+/* ------------------------------------------------------------ tabs */
+function selectTab(id){
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.pane === id));
+  document.querySelectorAll(".pane").forEach(p => {
+    const on = p.id === id;
+    if (on && !p.classList.contains("on")){ p.classList.add("on"); p.querySelectorAll("tbody tr,.meter i").forEach(x => { x.style.animation = "none"; void x.offsetWidth; x.style.animation = ""; }); }
+    else if (!on) p.classList.remove("on");
+  });
+  placeTabline();
+}
+function placeTabline(){ const t = $(".tab.on"), line = $("#tabline"); line.style.left = t.offsetLeft + "px"; line.style.width = t.offsetWidth + "px"; }
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => selectTab(t.dataset.pane)));
+
+/* ------------------------------------------------------------ boot */
+$("#rootpath").textContent = DATA.root + " · scanned " + META.generated;
+tween($("#st-size"), 0, ROOT.s, human, 1300);
+tween($("#st-files"), 0, META.files, fmtInt, 1300);
+tween($("#st-dirs"), 0, META.dirs, fmtInt, 1300);
+tween($("#st-time"), 0, META.elapsed, v => v.toFixed(1) + "s", 1300);
+document.querySelector('.tab[data-pane="p-largest"]').innerHTML += `<small>${DATA.largest.length}</small>`;
+document.querySelector('.tab[data-pane="p-types"]').innerHTML += `<small>${DATA.ext.length}</small>`;
+document.querySelector('.tab[data-pane="p-old"]').innerHTML += `<small>${DATA.old.length}</small>`;
+$("#old-note").textContent = `Biggest files not modified in over ${META.minAgeDays} days.`;
+fileTable($("#t-largest"), DATA.largest, false);
+typeTable($("#t-types"));
+fileTable($("#t-old"), DATA.old, true);
+renderTree();
+const notes = [];
+if (META.maxTreeDepth != null) notes.push(`Tree capped at depth ${META.maxTreeDepth}.`);
+notes.push(`Folders list at most ${fmtInt(META.maxChildren)} children; the rest are grouped.`);
+if (META.errors) notes.push(`${fmtInt(META.errors)} unreadable entries.`);
+if (META.links) notes.push(`${fmtInt(META.links)} symlinks/junctions listed at 0 B and not followed.`);
+$("#foot").innerHTML = `Generated locally by diskmap.py. Nothing left this machine.<br>${notes.join(" ")}`;
+resize();
+renderCrumbs(); renderInspector(ROOT); renderLegend(); placeTabline();
+setTimeout(() => { $("#hint").style.opacity = .0; }, 9000);
+if (!ROOT.s) $("#hint").textContent = "This folder is empty.";
+})();
+</script>
+</body></html>

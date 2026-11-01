@@ -1,5 +1,6 @@
-# Generated reports (can be hundreds of MB with plotly inlined)
+# Generated reports (the page template is source, not output)
 *.html
+!report_template.html
 
 # Editor backups
 *.bak

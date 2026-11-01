@@ -15,8 +15,7 @@ import webbrowser
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-import diskmap
-from diskmap import DEFAULT_EXCLUDES, Cancelled, PLOTLY_HINT, human_size, run_report
+from diskmap import DEFAULT_EXCLUDES, Cancelled, human_size, run_report
 
 BG = "#081522"
 PANEL = "#0D2338"
@@ -104,7 +103,7 @@ class DiskmapGUI:
         for col in (1, 3):
             opts.columnconfigure(col, weight=1)
 
-        self.treemap_depth = tk.IntVar(value=6)
+        self.treemap_depth = tk.IntVar(value=4)
         self.tree_depth = tk.IntVar(value=0)
         self.max_children = tk.IntVar(value=400)
         self.top_n = tk.IntVar(value=100)
@@ -123,13 +122,9 @@ class DiskmapGUI:
             ttk.Spinbox(opts, from_=lo, to=hi, textvariable=var, width=10).grid(
                 row=r, column=c * 2 + 1, sticky="w", padx=8, pady=4)
 
-        self.offline_var = tk.BooleanVar(value=True)
         self.open_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(opts, text="Bundle plotly.js (works offline, ~4 MB larger)",
-                        variable=self.offline_var).grid(row=3, column=0, columnspan=2,
-                                                        sticky="w", padx=8, pady=(8, 6))
         ttk.Checkbutton(opts, text="Open the report when it is finished",
-                        variable=self.open_var).grid(row=3, column=2, columnspan=2,
+                        variable=self.open_var).grid(row=3, column=0, columnspan=4,
                                                      sticky="w", padx=8, pady=(8, 6))
 
         bar = ttk.Frame(outer)
@@ -166,12 +161,11 @@ class DiskmapGUI:
         if getattr(args, "exclude", None):
             merged = list(dict.fromkeys(DEFAULT_EXCLUDES + list(args.exclude)))
             self.exclude_var.set(", ".join(merged))
-        self.treemap_depth.set(getattr(args, "treemap_depth", 6))
+        self.treemap_depth.set(getattr(args, "treemap_depth", 4))
         self.tree_depth.set(getattr(args, "max_tree_depth", None) or 0)
         self.max_children.set(getattr(args, "max_children", 400))
         self.top_n.set(getattr(args, "top", 100))
         self.min_age.set(getattr(args, "min_age_days", 365))
-        self.offline_var.set(not getattr(args, "cdn", False))
         if getattr(args, "open", False):
             self.open_var.set(True)
 
@@ -200,10 +194,6 @@ class DiskmapGUI:
     def start_scan(self):
         if self.worker and self.worker.is_alive():
             return
-        if diskmap.go is None:
-            messagebox.showerror("plotly is missing", PLOTLY_HINT)
-            return
-
         folder = self.folder_var.get().strip()
         if not folder or not os.path.isdir(folder):
             messagebox.showerror("Pick a folder", "Choose a folder that exists before scanning.")
@@ -223,7 +213,7 @@ class DiskmapGUI:
             target=self._work,
             args=(folder, output, excludes, tree_depth, self.treemap_depth.get(),
                   self.max_children.get(), self.top_n.get(), self.min_age.get(),
-                  self.offline_var.get(), self.cancel_event),
+                  self.cancel_event),
             daemon=True)
         self.worker.start()
 
@@ -244,14 +234,14 @@ class DiskmapGUI:
     # ---------------------------------------------------------------- worker
 
     def _work(self, folder, output, excludes, tree_depth, treemap_depth,
-              max_children, top_n, min_age, offline, cancel_event):
+              max_children, top_n, min_age, cancel_event):
         def progress(files, dirs, path):
             self.queue.put(("progress", (files, dirs, path)))
 
         try:
             out_path = run_report(
                 folder, output, excludes, tree_depth, treemap_depth, max_children,
-                top_n, min_age, inline_plotly=offline, progress=progress,
+                top_n, min_age, progress=progress,
                 cancel=cancel_event, log=lambda msg: self.queue.put(("log", msg)))
         except Cancelled:
             self.queue.put(("cancelled", None))
